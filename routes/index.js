@@ -1,0 +1,254 @@
+var express = require("express");
+var router = express.Router();
+const DNA = require("../models/dna");
+const T = require("tesseract.js");
+const fs = require("fs");
+const mangooes = require("mongoose");
+const User = require("../models/user");
+const ph = require("password-hash");
+const randomstring = require("randomstring");
+var nodemailer = require("nodemailer");
+
+
+
+
+
+router.get("/", function (req, res, next) {
+  res.send("WELCOME TO Future Disease Descriptor");
+});
+
+router.get("/dna", (req, res, next) => {
+  DNA.find({})
+    .then((result) => {
+      res.status(200).json({
+        data: result,
+      }).toArry;
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({
+        result: err,
+      });
+    });
+});
+
+router.post("/image", (req, res, next) => {
+  var realFile = Buffer.from(req.body.image, "base64");
+  // fs.writeFileSync('stack-abuse-logo-out.png', realFile);
+  T.recognize(realFile)
+    .then((result) => {
+      var str = result.data.text.replace(/[^ACGT\.]+/g, "");
+      res.status(200).json({
+        data: str,
+      }).toArry;
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({
+        result: err,
+      });
+    });
+});
+
+router.post("/insertDna", (req, res, next) => {
+  const user = new DNA({
+    _id: new mangooes.Types.ObjectId(),
+    name: req.body.name,
+    dna: req.body.dna
+      .replace(/\s+/g, "")
+      .replace(/[0-9]/g, "")
+      .replace(/(\r\n|\n|\r)/gm, "")
+      .toUpperCase(),
+    nickName: req.body.nickName,
+    affactedGene: req.body.affect,
+  });
+  user.save().then((result) => {
+    res.status(200).json({
+      result: "success",
+      msg: "created",
+      user: user,
+    });
+  });
+});
+
+router.get("/findDna", (req, res, next) => {
+  DNA.find({})
+    .then((result) => {
+      console.log(result);
+     res.send({
+      data:result
+     })
+    });
+});
+
+function similarity(s1, s2) {
+  var longer = s1;
+  var shorter = s2;
+  if (s1.length < s2.length) {
+    longer = s2;
+    shorter = s1;
+  }
+  var longerLength = longer.length;
+  if (longerLength == 0) {
+    return 1.0;
+  }
+  return (
+    (longerLength - editDistance(longer, shorter)) / parseFloat(longerLength)
+  );
+}
+
+function editDistance(s1, s2) {
+  s1 = s1.toLowerCase();
+  s2 = s2.toLowerCase();
+
+  var costs = new Array();
+  for (var i = 0; i <= s1.length; i++) {
+    var lastValue = i;
+    for (var j = 0; j <= s2.length; j++) {
+      if (i == 0) costs[j] = j;
+      else {
+        if (j > 0) {
+          var newValue = costs[j - 1];
+          if (s1.charAt(i - 1) != s2.charAt(j - 1))
+            newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+          costs[j - 1] = lastValue;
+          lastValue = newValue;
+        }
+      }
+    }
+    if (i > 0) costs[s2.length] = lastValue;
+  }
+  return costs[s2.length];
+}
+
+router.post("/login", async function (req, res, next) {
+  var body = req.body;
+  var a = await User.findOne({ email: body.email });
+  if (a) {
+    console.log("Hello");
+    if (ph.verify(body.password, a.password)) {
+      User.findById(a._id).then((d) => {
+        res.json({
+          result: true,
+          message: "Success",
+          user: d,
+        });
+      });
+    } else {
+      res.json({
+        result: false,
+        message: "invalid credentials",
+      });
+    }
+  } else {
+    res.json({
+      result: false,
+      message: "user not found",
+    });
+  }
+});
+
+router.post("/register", async function (req, res, next) {
+  const user = new User({
+    _id: new mangooes.Types.ObjectId(),
+    username: req.body.username,
+    email: req.body.email,
+    password: ph.generate(req.body.password),
+  });
+  var a = await User.findOne({ email: req.body.email });
+  if (a) {
+    res.json({
+      result: false,
+      message: "user already exsists",
+    });
+  } else {
+    user.save().then((ress) => {
+      res.json({
+        result: true,
+        message: "register",
+        user: user,
+      });
+    });
+  }
+});
+
+router.post("/forgetPassword", async function (req, res, next) {
+  var a = await User.findOne({ email: req.body.email });
+  if (a) {
+    const randToken = randomstring.generate();
+    await User.updateOne(
+      { email: req.body.email },
+      { $set: { token: randToken } }
+    );
+    await sendEmail(a.email, a.username, randToken).then((ress) => {
+      res.json({
+        result: true,
+        message: "check your gmail for reset password",
+      });
+    });
+  } else {
+    res.json({
+      result: false,
+      message: "email not found",
+    });
+  }
+});
+
+router.get("/resetPassword/:token", async function (req, res, next) {
+  res.render("forgetpasswordview");
+});
+
+router.post("/resetPassword/:token", async function (req, res, next) {
+  if (req.body["password"] == req.body["password2"]) {
+    if (req.body.password.length < 6) {
+      res.send("Password is should be 5 chracter");
+    } else {
+      const a = await User.findOne({ token: req.params.token });
+      if (a) {
+        await User.updateOne(
+          { email: a.email },
+          { $set: { token: "", password: ph.generate(req.body.password) } }
+        );
+        res.send("Password is rest");
+      } else {
+        res.send("Invalid token");
+      }
+    }
+  } else {
+    res.send("Passwords should be same");
+  }
+});
+
+async function sendEmail(email, name, token) {
+  var transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: "chhassan1210@gmail.com",
+      pass: "clvnsxxlnpgzqzsx",
+    },
+  });
+
+  var mailOptions = {
+    from: "hch33129@gmail.com",
+    to: "hch33129@gmail.com",
+    subject: "Reset Password",
+    html:
+      "<h1>Welcome</h1><p>Hi! " +
+      name +
+      ' Please reset your password using this link <a href ="https://fyp-project-api.herokuapp.com/resetPassword/' +
+      token +
+      '">reset password</a></p>',
+  };
+
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Email sent: " + info.response);
+    }
+  });
+}
+
+module.exports = router;

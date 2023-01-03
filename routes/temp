@@ -1,0 +1,124 @@
+router.get("/send-logs", async function (req, res, next) {
+  const ref = db.collection("userlogs");
+  var data;
+  var resul;
+  var i = 0;
+  Logs.find({ pushToFirebase: null })
+    .limit(1000)
+    .then((result) => {
+      resul = result;
+      result.forEach((element) => {
+        data = {
+          _id: element.id,
+          up_time: element.up_time == null ? null : element.up_time,
+          verifyMode: element.verifyMode == null ? null : element.verifyMode,
+          ioMode: element.ioMode == null ? null : element.ioMode,
+          logId: element.logId == null ? null : element.logId,
+          project: element.project == null ? null : element.project,
+          ioTime: element.ioTime == null ? null : element.ioTime,
+          sync: element.sync == null ? null : element.sync,
+          company:
+            element.company == null ? null : element.company.toHexString(),
+          logType: element.logType == null ? null : element.logType,
+          location: element.location == null ? null : element.location,
+          user: element.user == null ? null : element.user.toHexString(),
+          uD: element.uD == null ? null : element.uD.toHexString(),
+          _v: element.__v,
+        };
+        ref.add(data).then((result) => {
+          Logs.updateOne(
+            { _id: new ObjectId(element.id) },
+            { $set: { pushToFirebase: true } }
+          ).then((result) => {
+            console.log(result);
+          });
+        });
+        if (i == result.length - 1) {
+          res.status(200).json({
+            data: result,
+          });
+        }
+        i = i + 1;
+      });
+    });
+});
+
+router.get("/send-users", async function (req, res, next) {
+  const ref = db.collection("userdetails");
+  var data;
+  var resul;
+  var i = 0;
+  UserDetails.find({ pushToFirebase: null })
+    .limit(1300)
+    .then((result) => {
+      resul = result;
+      result.forEach((element) => {
+        data = {
+          _id: element.id,
+          grade: element.grade == null ? null : element.grade,
+          BankAccountNo:
+            element.BankAccountNo == null ? null : element.BankAccountNo,
+          hrId: element.hrId == null ? null : element.hrId,
+          logId: element.logId == null ? null : element.logId,
+          displayName: element.displayName == null ? null : element.displayName,
+          companyId: element.companyId == null ? null : element.companyId,
+          roleId: element.roleId == null ? null : element.roleId,
+          gender: element.gender == null ? null : element.gender,
+          inviteEmail: element.inviteEmail == null ? null : element.inviteEmail,
+          shift: element.shift == null ? null : element.shift.toHexString(),
+          department:
+            element.department == null
+              ? null
+              : element.department.toHexString(),
+          designation:
+            element.designation == null
+              ? null
+              : element.designation.toHexString(),
+          machineId:
+            element.machineId == null ? null : element.machineId.toHexString(),
+          uId: element.uId == null ? null : element.uId.toHexString(),
+          inviteStatus:
+            element.inviteStatus == null ? null : element.inviteStatus,
+          saluation: element.saluation == null ? null : element.saluation,
+          deleted_at: element.deleted_at == null ? null : element.deleted_at,
+          faceLoginEnabled:
+            element.faceLoginEnabled == null ? null : element.faceLoginEnabled,
+          fenceLoginEnabled:
+            element.fenceLoginEnabled == null
+              ? null
+              : element.fenceLoginEnabled,
+          outsideFence:
+            element.outsideFence == null ? null : element.outsideFence,
+          machines: element.machines == null ? null : element.machines,
+          registedMachines:
+            element.registedMachines == null ? null : element.registedMachines,
+          shareLocation:
+            element.shareLocation == null ? null : element.shareLocation,
+          _v: element.__v == null ? null : element.__v,
+        };
+        ref.add(data).then((result) => {
+          UserDetails.updateOne(
+            { _id: new ObjectId(element.id) },
+            { $set: { pushToFirebase: true } }
+          ).then((result) => {
+            console.log(result);
+          });
+        });
+        if (i == result.length - 1) {
+          res.status(200).json({
+            data: result,
+          });
+        }
+        i = i + 1;
+      });
+    });
+});
+
+
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://logsnx.firebaseio.com",
+  });
+  
+  const db = admin.firestore();
