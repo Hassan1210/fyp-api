@@ -8,6 +8,7 @@ const User = require("../models/user");
 const ph = require("password-hash");
 const randomstring = require("randomstring");
 var nodemailer = require("nodemailer");
+const Blogs = require("../models/blogs");
 
 
 
@@ -74,7 +75,15 @@ router.post("/insertDna", (req, res, next) => {
 router.get("/findDna", (req, res, next) => {
   DNA.find({})
     .then((result) => {
-      console.log(result);
+     res.send({
+      data:result
+     })
+    });
+});
+
+router.get("/blogs", (req, res, next) => {
+  Blogs.find({})
+    .then((result) => {
      res.send({
       data:result
      })
@@ -199,7 +208,7 @@ async function sendEmail(email, name, token) {
     html:
       "<h1>Welcome</h1><p>Hi! " +
       name +
-      ' Please reset your password using this link <a href ="https://fyp-project-api.herokuapp.com/resetPassword/' +
+      ' Please reset your password using this link <a href ="https://enchanting-gray-threads.cyclic.app/resetPassword/' +
       token +
       '">reset password</a></p>',
   };
