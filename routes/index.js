@@ -9,6 +9,10 @@ const ph = require("password-hash");
 const randomstring = require("randomstring");
 var nodemailer = require("nodemailer");
 const Blogs = require("../models/blogs");
+const Symptoms = require("../models/symptoms") 
+const Precautions = require("../models/precautions"); 
+const Doctors = require("../models/doctors"); 
+
 
 
 
@@ -72,14 +76,20 @@ router.post("/insertDna", (req, res, next) => {
   });
 });
 
-router.get("/findDna", (req, res, next) => {
-  DNA.find({})
-    .then((result) => {
+router.get("/findDna", async function (req, res, next) {
+  const dna =  await DNA.find({});
+  const symptoms =  await Symptoms.find({});
+  const doctors =  await Doctors.find({});
+  const precautions =  await Precautions.find({});
+
+
      res.send({
-      data:result
+      data:dna,
+      symptoms : symptoms,
+      doctors: doctors,
+      precautions : precautions,
      })
     });
-});
 
 router.get("/blogs", (req, res, next) => {
   Blogs.find({})
