@@ -153,6 +153,59 @@ router.post("/register", async function (req, res, next) {
   }
 });
 
+
+router.post("/login", async function (req, res, next) {
+  var body = req.body;
+  var a = await User.findOne({ email: body.email });
+  if (a) {
+    console.log("Hello");
+    if (ph.verify(body.password, a.password)) {
+      User.findById(a._id).then((d) => {
+        res.json({
+          result: true,
+          message: "Success",
+          user: d,
+        });
+      });
+    } else {
+      res.json({
+        result: false,
+        message: "invalid credentials",
+      });
+    }
+  } else {
+    res.json({
+      result: false,
+      message: "user not found",
+    });
+  }
+});
+
+router.post("/changePassword", async function (req, res, next) {
+  var a = await User.findOne({ email: req.body.email });
+  if (a) {
+   if(ph.verify(req.body.password,a.password)){
+      User.updateOne({email:req.body.email,$set:{password:ph.generate(req.body.newPassword)}}).then((d)=>{
+        res.send({
+          result: true,
+          message: "Your password is changed Successfully",
+        })
+      })
+   }else{
+    res.json({
+      result: false,
+      message: "Your current password is incorrect",
+    }); 
+   }
+  } else {
+      res.json({
+        result: false,
+        message: "User Not Found",
+      }); 
+     }
+});
+
+
 router.post("/forgetPassword", async function (req, res, next) {
   var a = await User.findOne({ email: req.body.email });
   if (a) {
