@@ -100,7 +100,14 @@ router.get("/blogs", (req, res, next) => {
     });
 });
 
-
+router.get("/doctors", (req, res, next) => {
+  Doctors.find({})
+    .then((result) => {
+     res.send({
+      data:result
+     })
+    });
+});
 
 router.post("/login", async function (req, res, next) {
   var body = req.body;
