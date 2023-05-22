@@ -79,7 +79,7 @@ router.post("/insertDna", (req, res, next) => {
 router.get("/findDna", async function (req, res, next) {
   const dna =  await DNA.find({});
   const symptoms =  await Symptoms.find({});
-  const doctors =  await Doctors.find({});
+  const doctors =  await Doctors.find({isGenetic:true});
   const precautions =  await Precautions.find({});
 
 
